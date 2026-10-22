@@ -100,10 +100,13 @@ pose, `< 0.049 m` → full five-finger grasp; the skill's five-publish burst is
 idempotent (the same pose is re-issued and settles). What changes for the skill
 is only configuration: the O6 palm is longer, so the desktop/grasp heights are
 0.14 m, and `gripper_settle_s` is raised to 3 s so the fingers finish closing
-before the lift. Grasp **width** feedback is not available on `gripper_joint`
-(hand mode publishes the hand joints instead), so a grasp completes but is
-reported as *unverified*; read the hand joints from `joint_states` or
-`/jaka/hand/state_joint`.
+before the lift. For the grasp verdict the skill reconstructs a width-like
+opening from the hand joints in `joint_states` (thumb/index/middle/ring
+flexion, the same 0.098 m scale and thresholds as the gripper), so the
+empty-grasp/open checks keep working without `gripper_joint`. The O6's
+lost-answer clusters can still look like a fully-closed hand — the verdict
+waits for two settled samples, but treat a critical grasp with care. The hand
+joints are also on `/jaka/hand/state_joint`.
 
 ## Pick skill (camera-driven grasp)
 
@@ -276,7 +279,7 @@ its generated bindings; boot from this directory.
 | hand move | enable motion, `hand/move_joint` | a partial request is rejected until a full six-axis target is sent; then one axis moves; boundary requests (out-of-range/unknown/empty/dup) rejected with a reason |
 | arm + hand health | move a finger, watch `joint_states`/vitals | arm feedback keeps streaming (no `-3` reads), body state NORMAL |
 | single joint | small joint delta on `joint_command` | joints follow, limits hold, estop works |
-| skill compat | skill `grab` (or a `gripper_joint` publish) | O6 opens before approach and runs the full grasp at the descent; grasp reported unverified |
+| skill compat | skill `grab` (or a `gripper_joint` publish) | O6 opens before approach and runs the full grasp at the descent; the verdict comes from the reconstructed hand width (two settled samples; O6 link caveat) |
 | camera | `bash start.sh`, `rbnx caps -v` | orbbec_camera ACTIVE; `camera/rgb` streams 1280×720 |
 | pick (dry) | set VLM + homography, `jaka_pick {object}` before enabling motion | detect + geometry resolve; motion times out with the `motion_enabled` hint |
 | pick (live) | motion enabled, calibrated | arm descends on the detected object, hand closes, lifts |
