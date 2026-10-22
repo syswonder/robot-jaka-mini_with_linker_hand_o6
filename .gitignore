@@ -15,3 +15,6 @@ tools/calibration/intrinsics-data/
 tools/calibration/Log/
 __pycache__/
 *.pyc
+
+# DSH code index cache: regenerated per workspace, never commit
+.dsh-code-index/
