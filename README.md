@@ -97,10 +97,12 @@ The skill still grips the way it did with the TG-9801: it publishes
 `sensor_msgs/JointState{name: ["gripper_joint"], position: [m]}` on
 `/jaka/joint_command`. In hand mode `jaka_arm` maps `>= 0.049 m` → O6 open
 pose, `< 0.049 m` → full five-finger grasp; the skill's five-publish burst is
-idempotent (the same pose is re-issued and settles). What changes for the skill
-is only configuration: the O6 palm is longer, so the desktop/grasp heights are
-0.14 m, and `gripper_settle_s` is raised to 3 s so the fingers finish closing
-before the lift. For the grasp verdict the skill reconstructs a width-like
+idempotent (the same pose is re-issued and settles). The skill config declares
+the body with the required `end_effector: hand` (`gripper` for the TG-9801
+deployment); a missing value is reported as a skill config error. What changes
+for the skill is only configuration: the O6 palm is longer, so the
+desktop/grasp heights are 0.14 m, and `gripper_settle_s` is raised to 3 s so
+the fingers finish closing before the lift. For the grasp verdict the skill reconstructs a width-like
 opening from the hand joints in `joint_states` (thumb/index/middle/ring
 flexion, the same 0.098 m scale and thresholds as the gripper), so the
 empty-grasp/open checks keep working without `gripper_joint`. The O6's

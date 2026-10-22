@@ -138,6 +138,10 @@ skill:
     branch: main
     config:
       arm_provider_id: jaka_arm
+      # REQUIRED by the skill: this body is the O6 hand. The skill reads the
+      # six hand joints from joint_states and reconstructs the gripper-width
+      # verdict scale; `gripper` would expect a real gripper_joint.
+      end_effector: hand
       # grab/release poses ([x,y,z,rx,ry,rz], metres + radians, base frame).
       # 2026-10-16 O6 swap: desktop z = 0.14 (the 0.125 TG-9801 figure put
       # the longer O6 palm into the table), hover = desktop + 0.15 (AIIT's
