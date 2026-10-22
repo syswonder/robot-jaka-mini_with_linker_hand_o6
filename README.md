@@ -10,6 +10,8 @@ always and `robonix/primitive/hand/*` in `end_effector: hand` mode.
 The TG-9801 gripper variant of this deployment lives in the original
 [robot-jaka-mini](https://github.com/syswonder/robot-jaka-mini) repository.
 
+![JAKA Mini arm with the LinkerHand O6 hand](assets/robot.jpg)
+
 ## Hardware & platform
 
 | item | value |
