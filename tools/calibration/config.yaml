@@ -6,17 +6,26 @@
 # tools/jaka_estop_recover.py 直连裸 jkrc 也读这个键）
 arm_port: 10.5.5.100
 # 含 jaka_arm/driver.py 的臂包根目录；空 = 自动探测
-# （sibling ../primitive-jaka-rbnx → rbnx-boot/cache/* → 部署根同级目录）
+# （sibling ../primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx →
+#   rbnx-boot/cache/* → 部署根同级目录）
 jaka_arm_package_path: ""
 # JakaDriver 运动参数（标定想更慢更稳就调小）
 joint_speed_rad_s: 1.0
 linear_speed_mm_s: 100.0
 # move_to 的 RZ 偏移（度）——与清单 skill.jaka.config.grasp_yaw_offset_deg 同源
 jaka_catch_rot_offset_deg: -90
+# JakaDriver 的末端模式：gripper = TG-9801，hand = LinkerHand O6。
+# 本部署（JAKA Mini + O6）用 hand：标定脚本的"开爪/合爪"手势经同一条 jkrc
+# 连接驱动 O6 的张开/全握姿势（arm+hand 合并原语，见清单）。
+end_effector: hand
+# 手侧（right=0x27，left=0x28）；仅 end_effector: hand 时读取。
+hand_type: right
 
 # ===== 手眼标定 =====
 # 验证模式映射点的 z（米）——必须与清单 skill.jaka.config.desktop_height 一致
-default_desktop_height: 0.125
+# 2026-10-16 O6 换装后 0.125 → 0.14（AIIT 同款臂+手实测值；O6 手掌比 TG-9801
+# 指爪长，同高度会压桌）。
+default_desktop_height: 0.14
 
 # ===== 相机与显示 =====
 # utils/cv2_display.py 的网页显示端口；置空则用 OpenCV 窗口（无显示器环境会失败）

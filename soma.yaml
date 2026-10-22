@@ -1,12 +1,17 @@
-# Body description for the fixed-base JAKA Mini arm + TG-9801 gripper.
+# Body description for the fixed-base JAKA Mini arm + LinkerHand O6 dexterous
+# hand (mounted 2026-10-15). Arm and hand are served by ONE primitive
+# (jaka_arm with end_effector: hand) because the controller permits a single
+# jkrc session and one RS485 signal table. The TG-9801 gripper variant of this
+# deployment lives in the original robot-jaka-mini repository.
 #
 # urdf.path points at the JAKA app export (urdf/robot.urdf), post-processed:
 # the 6 arm joints were renamed link_002_joint..link_007_joint ->
 # joint_1..joint_6 so they match the joint_states names published by the
 # jaka_arm provider (robot_state_publisher matches by exact name). If the
-# URDF is re-exported from the JAKA app, re-apply this rename.
-# Gripper finger joints (link_008_joint/link_009_joint, prismatic) are kept
-# as exported; the provider publishes a single gripper_joint value.
+# URDF is re-exported from the JAKA app, re-apply this rename. The TG-9801
+# finger links were replaced by the O6 hand chain (hand_base_link + 17 links,
+# 6 actuated joints), mounted on link_007 through `link_007_to_hand` whose
+# pose is a PLACEHOLDER pending on-site measurement.
 urdf:
   path: ./urdf/robot.urdf
   root_link: base_link
@@ -25,21 +30,29 @@ robot:
       exports:
         - provider_id: jaka_arm
           capabilities:
-            - { path: robonix/primitive/arm/joint_states, description: "Read arm and gripper joints." }
-            - { path: robonix/primitive/arm/joint_command, description: "Command arm joints." }
+            - { path: robonix/primitive/arm/joint_states, description: "Read arm and hand joints." }
+            - { path: robonix/primitive/arm/joint_command, description: "Command arm and hand joints." }
             - { path: robonix/primitive/arm/pos_command, description: "Command a Cartesian end-effector target; the provider performs IK." }
             - { path: robonix/primitive/arm/end_pose, description: "Read the end-effector pose." }
       components:
-        - id: gripper
-          type: parallel_jaw_gripper
-          urdf_link: link_007
-          state:
-            joint_name: gripper_joint
-            # Full stroke of the TG-9801 (datasheet). Re-calibrate against
-            # the measured open reading during acceptance.
-            open_position_m: 0.098
-            open_tolerance_m: 0.005
-          exports: []
+        - id: hand
+          type: end_effector
+          urdf_link: hand_base_link
+          # Soma's gripper aggregation (type parallel_jaw_gripper/end_effector
+          # + state.open_position_m) models a single open/close joint; the O6
+          # is a six-actuator dexterous hand, so no `state` block is declared
+          # and no open/holding snapshot is produced for it. Hand state is read
+          # from the hand contracts instead (state_joint), served by the same
+          # jaka_arm provider: the O6 shares the arm's single jkrc session and
+          # RS485 end channel, so it cannot be a second process.
+          exports:
+            - provider_id: jaka_arm
+              capabilities:
+                - { path: robonix/primitive/hand/info, description: "Hand control-axis layout (6 axes)." }
+                - { path: robonix/primitive/hand/move_joint, description: "Command hand axes by name (normalized, per axis)." }
+                - { path: robonix/primitive/hand/set_joint_speed_limits, description: "Per-axis speed ceilings." }
+                - { path: robonix/primitive/hand/set_joint_torque_limits, description: "Per-axis torque ceilings." }
+                - { path: robonix/primitive/hand/state_joint, description: "Per-axis position stream (normalized)." }
         - id: camera
           type: rgbd_camera
           # Overhead/fixed Orbbec Gemini 336L. Fixed relative to the base;
@@ -54,6 +67,6 @@ robot:
                 - { path: robonix/primitive/camera/camera_info, description: "Color stream intrinsics." }
 
 description:
-  summary: "Fixed-base JAKA 6-DOF arm with TG-9801 adaptive gripper and an overhead Orbbec Gemini 336L RGBD camera."
-  can_do: ["joint control", "cartesian motion", "gripping", "camera-driven pick of a named object (VLM detection + 2D hand-eye homography)"]
-  cannot_do: ["mobile navigation", "operate without a fixed base", "grasp objects off the calibrated table plane (pick z is a fixed configured height)", "verify grasp success from gripper feedback (TG-9801 RS485 position reads are invalid on this arm)"]
+  summary: "Fixed-base JAKA 6-DOF arm with a LinkerHand O6 six-axis dexterous hand (one jkrc session serving arm and hand contracts over the controller's end RS485) and an overhead Orbbec Gemini 336L RGBD camera."
+  can_do: ["joint control", "cartesian motion", "six-axis hand control (per-axis position/speed/torque over hand/info + hand/move_joint)", "the unchanged JAKA grab/release/pick skill via jaka_arm's hand-mode gripper_joint mapping", "camera-driven pick of a named object (VLM detection + 2D hand-eye homography)"]
+  cannot_do: ["mobile navigation", "operate without a fixed base", "grasp objects off the calibrated table plane (pick z is a fixed configured height)", "independent distal finger joints (the O6 has six actuators; each distal joint follows its proximal one mechanically)", "hand open/close aggregation in Soma snapshots (multi-axis hand; read hand/state_joint instead)"]

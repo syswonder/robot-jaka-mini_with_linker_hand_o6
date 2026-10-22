@@ -2,11 +2,11 @@ manifestVersion: 1
 name: robonix-jaka-mini
 
 catalog:
-  name: robonix.robot.jaka.mini
+  name: robonix.robot.jaka.mini.o6
   version: 0.1.0
-  description: Robonix deployment for the JAKA Mini arm with TG-9801 gripper.
+  description: Robonix deployment for the JAKA Mini arm with a LinkerHand O6 dexterous hand.
   license: Apache-2.0
-  tags: [robot, deploy, arm, jaka, gripper]
+  tags: [robot, deploy, arm, jaka, linkerhand, o6, dexterous-hand]
   maintainers:
     - Felix <xi.lifeng@qq.com>
 
@@ -53,6 +53,10 @@ system:
   liaison:
     listen: 0.0.0.0:50081
 
+# The arm and the hand share one jkrc session, so they are served by one
+# primitive (`jaka_arm`, end_effector: hand). A separate hand process cannot
+# log in to the same controller: the second SDK login breaks the first
+# session, and the RS485 signal table is global.
 primitive:
   - name: robot_description
     url: https://github.com/syswonder/primitive-robot-description-rbnx
@@ -62,32 +66,40 @@ primitive:
     # Keeps the whole deployment docker-free.
     manifest: package_manifest.native.yaml
 
-  # jaka_arm instance: provider id = name; config is delivered through
-  # Driver(CMD_INIT, config_json). See the package repo's config.spec
-  # (fetched at boot into rbnx-boot/cache/).
+  # Arm + LinkerHand O6 hand in ONE primitive: the O6 hangs on the
+  # controller's end RS485L (channel 1, slave 0x27 = right) behind the same
+  # jkrc session. The controller allows only one active SDK session (a second
+  # login breaks the first) and one RS485 signal table, so the arm and hand
+  # cannot be split into two processes: `end_effector: hand` serves both the
+  # robonix/primitive/arm/* and robonix/primitive/hand/* contracts from this
+  # provider id.
+  # The unchanged JAKA skill keeps driving its `gripper_joint`; in hand mode
+  # that maps to the O6 open/full-grasp poses, and joint_states carries the six
+  # hand joints next to the six arm joints.
   - name: jaka_arm
-    url: https://github.com/syswonder/primitive-jaka-mini-arm-rbnx
+    url: https://github.com/syswonder/primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx
     branch: main
     config:
       ip: 10.5.5.100
-      # SAFETY GATE: operator enabled motion 2026-09-24. Commands are
-      # rejected while false.
+      # 2026-10-15: LinkerHand O6 on the end face (was TG-9801). Set
+      # `gripper` for the TG-9801 variant.
+      end_effector: hand
+      hand_type: right
+      # SAFETY GATE: gates arm and hand motion. Commands are rejected while
+      # false.
       motion_enabled: true
       joint_speed_rad_s: 0.5
       linear_speed_mm_s: 50.0
-      # 20 (not 50) on this demo branch: the demo object (a raw egg)
-      # cracks at higher force (applied once at connect; verify on the
-      # real object, adjust down/up).
+      # TG-9801-only keys: ignored in hand mode; kept for a gripper variant.
       gripper_force: 20
       gripper_speed: 1100
       state_publish_hz: 50.0
+      hand_publish_period_s: 0.5
       base_frame: world
-      # Exit homing: on boot teardown (Ctrl-C / `rbnx shutdown`) the gripper
-      # opens (releasing any held object), then the arm returns here before
-      # power-off. All-zeros = JAKA reference pose, matching the skill's
-      # jaka_home default; calibrate on-site if a safer park pose is wanted.
-      # Only honored while motion_enabled is true. Absent key = no motion on
-      # exit.
+      # Exit homing: on boot teardown the hand opens first (releasing any
+      # held object), then the arm returns here before power-off. All-zeros =
+      # JAKA reference pose, matching the skill's jaka_home default. Only
+      # honored while motion_enabled is true. Absent key = no motion on exit.
       shutdown_home_joints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
   # Orbbec Gemini 336L (USB 2bc5:0807) — same hardware agilex drives, so the
@@ -114,52 +126,46 @@ primitive:
       sentinel_timeout_s: 30.0
 
 skill:
-  # jaka grab/release/home/place/pick (+ jaka_fixed_grasp: fixed-pose
-  # pick-and-place, 固定抓取, at fixed_grasp_pose -> fixed_place_pose).
-  # grab/release drive jaka_arm's
-  # pos/joint_command from configured poses (no perception). home returns
-  # the six arm joints to home_joints (default all-zeros) via a joint-space
-  # move, gripper untouched. place sets a held object down — by default
-  # in place (原地放下: current XY at desktop_height); a configured
-  # place_pose overrides. pick adds the camera
-  # path: locate a
-  # named object (yolo11-obb or VLM backend, detect_scheme) -> 2D homography
-  # -> grasp XY (yolo adds gripper-yaw alignment to the object's long edge).
-  # grab works uncalibrated; pick reports "unavailable" until homography_matrix
-  # + the scheme's detector (yolo weights / VLM endpoint) are set.
-  # See the skill repo's config.spec for every key.
+  # The same six capabilities as the TG-9801 deployment (grab/release/home/
+  # place/pick + jaka_fixed_grasp): the hand swap changes the body and the
+  # primitive, not the skill surface. The skill still drives its gripper via
+  # `gripper_joint`; jaka_arm's hand mode maps that onto the O6 open/full-grasp
+  # poses. `gripper_settle_s` is longer than the TG-9801 default because the O6
+  # three-frame motion takes ~1 s plus the finger travel. See the skill repo's
+  # config.spec for every key.
   - name: jaka
-    url: https://github.com/syswonder/skill-jaka-rbnx
+    url: https://github.com/syswonder/skill-jaka-grasp-rbnx
     branch: main
     config:
       arm_provider_id: jaka_arm
       # grab/release poses ([x,y,z,rx,ry,rz], metres + radians, base frame).
-      hover_pose: [0.20, 0.00, 0.275, 3.14159265, 0.0, 0.0]
-      grasp_pose: [0.20, 0.00, 0.125, 3.14159265, 0.0, 0.0]
+      # 2026-10-16 O6 swap: desktop z = 0.14 (the 0.125 TG-9801 figure put
+      # the longer O6 palm into the table), hover = desktop + 0.15 (AIIT's
+      # catch_raise_height on the same arm + hand).
+      hover_pose: [0.20, 0.00, 0.29, 3.14159265, 0.0, 0.0]
+      grasp_pose: [0.20, 0.00, 0.14, 3.14159265, 0.0, 0.0]
       # ── fixed_grasp (demo, 固定抓取): fixed-pose pick-and-place ──
-      # Both REQUIRED for jaka_fixed_grasp; until set it reports
-      # unavailable (grab/release/pick unaffected). Each hover is
-      # z + travel_offset (0.125 + 0.06 = 0.185 m — in reach at this
-      # ~0.22 m radial). Values are config.spec starting points:
-      # CALIBRATE on-site (teach the arm there,
-      # `ros2 topic echo /jaka/end_pose --once`) before trusting them
-      # with the real object. Grip force lives in jaka_arm's
-      # gripper_force above (lowered to 20 for the fragile object).
-      fixed_grasp_pose: [0.15, 0.18, 0.125, 3.14159265, 0.0, 0.0]
-      fixed_place_pose: [-0.15, 0.18, 0.125, 3.14159265, 0.0, 0.0]
+      # Both REQUIRED for jaka_fixed_grasp; until set it reports unavailable
+      # (grab/release/pick unaffected). Each hover is z + travel_offset.
+      fixed_grasp_pose: [0.15, 0.18, 0.14, 3.14159265, 0.0, 0.0]
+      fixed_place_pose: [-0.15, 0.18, 0.14, 3.14159265, 0.0, 0.0]
       # ── pick (perception) ──
       camera_provider_id: orbbec_camera
-      # From AIIT-Roboarm (same JAKA controller + base frame):
-      #   config.yaml default_desktop_height=0.125, catch_raise_height=0.15.
-      desktop_height: 0.125
-      # AIIT's catch_raise_height=0.15 does NOT fit this arm's workspace:
-      # hover z = 0.275 with a vertical-down tool is beyond reach at pick
-      # distance (controller kine_inverse returns -4 at radial >= ~0.36 m,
-      # verified 2026-09-26 by probing the controller directly). Max hover
-      # height there is ~0.195-0.235 m depending on radial; 0.185 m is
-      # solvable in-limits across radial 0.36-0.38 m.
-      travel_offset: 0.06
+      # Desktop z as in grab: 0.14 (AIIT-calibrated for the same hand).
+      desktop_height: 0.14
+      # AIIT's catch_raise_height=0.15 is unreachable over the pick camera
+      # field: hover = 0.14 + 0.15 = 0.29, while controller IK caps hover z at
+      # ~0.23 at radial ~0.368 m (2026-10-16 kine_inverse probe: 0.225 has a
+      # solution, 0.24 does not). 0.08 -> hover 0.22, ~10 mm margin; farther
+      # objects allow less.
+      travel_offset: 0.08
       grasp_rpy: [3.14159265, 0.0, 0.0]
+      # ── hand compatibility (the O6 has no metre width) ──
+      # The skill publishes gripper_joint (0.098 = open, 0 = grip) five times;
+      # jaka_arm's hand mode maps each publish to the O6 open/grasp pose (the
+      # repeated poses settle). Give the O6 time to finish closing before the
+      # lift starts.
+      gripper_settle_s: 3.0
       # ── detection backend ──
       # yolo = in-process yolo11-obb (classes: carrot/potato/tomato; weights
       # from the agilex deploy, best.pt) with two-frame consistency and

@@ -20,8 +20,10 @@ export RBNX_CODEGEN_PYTHON="$VENV/bin/python"
 export PATH="$VENV/bin:$PATH"
 
 # Local-first: prefer the gitignored path-based manifest (builds the sibling
-# checkouts ../primitive-*-rbnx, ../skill-jaka-rbnx directly — no GitHub
-# clone / freshness fetch, so unpushed local edits take effect). Fall back
+# checkouts ../primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx (arm +
+# O6 hand in one primitive), ../primitive-orbbec-camera-rbnx and
+# ../skill-jaka-grasp-rbnx directly — no GitHub clone / freshness fetch, so
+# unpushed local edits take effect). Fall back
 # to the committed url-based manifest on machines without it.
 # --no-update-check keeps the url entry (robot_description) from probing
 # GitHub; refresh it with `rbnx update`.

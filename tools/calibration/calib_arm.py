@@ -1,7 +1,8 @@
-# Description: 标定工具的臂适配层——探测并复用 primitive-jaka-rbnx 的 JakaDriver，
+# Description: 标定工具的臂适配层——探测并复用合并臂+手包的 JakaDriver，
 # 暴露标定脚本使用的调用面（与 AIIT-Roboarm arm/arm_base.Arm 的用法一致）。
 #
-# 臂驱动不随本工具分发：jkrc/夹爪/运动学代码都在臂包 primitive-jaka-rbnx
+# 臂驱动不随本工具分发：jkrc/手/运动学代码都在合并包
+# primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx
 # （jaka_arm/driver.py，MIT，与 AIIT 的 jaka_ctrl_by_sdk.py 同源）里维护，
 # 这里只做探测 + 薄适配，避免两份实现各自漂移。
 import glob
@@ -26,9 +27,11 @@ def _locate_jaka_package() -> str:
     configured = get_config_value("jaka_arm_package_path", "", raise_if_missing=False)
     if configured:
         candidates.append(configured)
-    candidates.append(
-        os.path.join(os.path.dirname(DEPLOY_ROOT), "primitive-jaka-rbnx")
-    )
+    for name in (
+        "primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx",
+        "primitive-jaka-rbnx",   # TG-9801-only legacy arm package
+    ):
+        candidates.append(os.path.join(os.path.dirname(DEPLOY_ROOT), name))
     candidates.extend(
         sorted(glob.glob(os.path.join(DEPLOY_ROOT, "rbnx-boot", "cache", "*")))
     )
@@ -37,7 +40,7 @@ def _locate_jaka_package() -> str:
         if os.path.exists(os.path.join(candidate, "jaka_arm", "driver.py")):
             return candidate
     raise ImportError(
-        "找不到臂包 primitive-jaka-rbnx（需要 jaka_arm/driver.py）。已尝试:\n  "
+        "找不到臂包（需要合并包/旧臂包的 jaka_arm/driver.py）。已尝试:\n  "
         + "\n  ".join(candidates)
         + "\n请先 `bash build.sh` 或 `rbnx boot` 让臂包进入 rbnx-boot/cache/，"
         "或在 config.yaml 里设置 jaka_arm_package_path。"
@@ -61,10 +64,16 @@ class CalibArm:
 
     def __init__(self):
         self._catch_rot_offset_deg = get_config_value("jaka_catch_rot_offset_deg", 0)
+        # 末端与部署清单同键：gripper = TG-9801；hand = LinkerHand O6。
+        # 标定脚本的"开爪/合爪"手势经同一条 jkrc 连接驱动对应末端（hand 模式
+        # 下是 O6 的张开/全握姿势）。
+        self._end_effector = get_config_value("end_effector", "gripper")
         self._driver = JakaDriver(
             get_config_value("arm_port"),
             joint_speed_rad_s=get_config_value("joint_speed_rad_s", 1.0),
             linear_speed_mm_s=get_config_value("linear_speed_mm_s", 100.0),
+            end_effector=self._end_effector,
+            hand_type=get_config_value("hand_type", "right"),
         )
         self._driver.connect()
 
