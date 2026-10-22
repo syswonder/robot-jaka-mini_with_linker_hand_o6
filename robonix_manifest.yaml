@@ -2,7 +2,7 @@ manifestVersion: 1
 name: robonix-jaka-mini
 
 catalog:
-  name: robonix.robot.jaka.mini.o6
+  name: robonix.robot.jaka.mini_with_linker_hand_o6
   version: 0.1.0
   description: Robonix deployment for the JAKA Mini arm with a LinkerHand O6 dexterous hand.
   license: Apache-2.0
