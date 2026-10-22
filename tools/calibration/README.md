@@ -5,7 +5,7 @@
 `homography_matrix`。无头机器上画面走浏览器（Flask MJPEG，`:8079`）。
 
 - **臂**：直连控制器 `10.5.5.100`（jkrc）；驱动不随工具分发，复用臂包
-  `primitive-jaka-rbnx` 的 `JakaDriver`。
+  `primitive-jaka-mini_with_tg9801_gripper-arm_gripper-rbnx` 的 `JakaDriver`。
 - **相机**：宿主 `pyorbbecsdk` 直连 Gemini 336L，**钉死 1280×720**（与运行时相机原语
   同口径；退默认档会大声警告——那意味着标定作废）。
 - **内参**：`intrinsics-data/` 不入库（值与清单 `camera_matrix`/`dist_coeffs` 相同）；

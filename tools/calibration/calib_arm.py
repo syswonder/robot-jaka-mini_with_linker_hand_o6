@@ -29,7 +29,8 @@ def _locate_jaka_package() -> str:
         candidates.append(configured)
     for name in (
         "primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx",
-        "primitive-jaka-rbnx",   # TG-9801-only legacy arm package
+        # TG-9801-only legacy arm package
+        "primitive-jaka-mini_with_tg9801_gripper-arm_gripper-rbnx",
     ):
         candidates.append(os.path.join(os.path.dirname(DEPLOY_ROOT), name))
     candidates.extend(
