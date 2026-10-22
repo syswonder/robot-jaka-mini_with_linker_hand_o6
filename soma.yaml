@@ -9,9 +9,13 @@
 # joint_1..joint_6 so they match the joint_states names published by the
 # jaka_arm provider (robot_state_publisher matches by exact name). If the
 # URDF is re-exported from the JAKA app, re-apply this rename. The TG-9801
-# finger links were replaced by the O6 hand chain (hand_base_link + 17 links,
-# 6 actuated joints), mounted on link_007 through `link_007_to_hand` whose
-# pose is a PLACEHOLDER pending on-site measurement.
+# finger links and gripper body were replaced by the O6 hand chain
+# (hand_base_link + 17 links, 6 actuated joints) on the supplied 45° adapter:
+# link_007 -> jaka_o6_adapter_link -> hand_base_link. The adapter pose is
+# derived from the supplied adapter STEP (source not kept in this repo;
+# 4×M6 @ 50 mm PCD on the flange, O6 20×20 mm pattern on the hand); the
+# adapter-on-flange and hand-on-adapter 90° clockings are recorded on the two
+# fixed joints.
 urdf:
   path: ./urdf/robot.urdf
   root_link: base_link

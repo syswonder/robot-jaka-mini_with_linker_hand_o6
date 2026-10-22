@@ -181,7 +181,8 @@ tools/calibration/.venv/bin/python tools/jaka_estop_recover.py
 ## URDF
 
 `urdf/robot.urdf` is the JAKA app export of the real JAKA Mini with the O6 hand
-chain grafted on (`meshes/` including `meshes/right_hand/`). It is consumed by
+chain and its 45° adapter grafted on (`meshes/` including `meshes/right_hand/`
+and `meshes/adapter/`). It is consumed by
 Soma (`urdf.path` in `soma.yaml`), which serves the raw XML to
 `robot_description` via `get_urdf`.
 
@@ -198,11 +199,31 @@ The export was post-processed for this deployment:
   from the standalone O6 URDF in `syswonder/robot-linkerbot-linker_hand_o6`
   (extracted from the BeingBeyond D1 whole-body model); joint names match the
   axis names the primitive reports through `hand/info`.
-- The mount joint `link_007_to_hand` **has a placeholder pose**
-  (`xyz="0 0 -0.085"`, rpy all-zero): the O6's true mounting offset on the
-  flange must be measured on the real arm and corrected there — the pick
-  skill's heights depend on it. Do not trust RViz palm placement until it is
-  calibrated.
+- The mount is derived from the supplied JAKA Mini flange → O6 adapter STEP
+  (the CAD source is not kept in this repo), not a placeholder. The STEP is a
+  45° elbow; its tessellated mesh is
+  `urdf/meshes/adapter/jaka_o6_adapter.stl` and the chain
+  is `link_007 → jaka_o6_adapter_link → hand_base_link` (two `fixed` joints).
+  The pose comes from the adapter's real interfaces: 4×M6 on a 50 mm PCD to
+  the flange and the O6's 20×20 mm M3 pattern to the hand. The 4×M6 pattern
+  is 90°-symmetric, so the adapter clocking is a choice of four; this pose
+  maps adapter +X to the flange hole at +33.04° and +Y toward +123.04°.
+  Change only the `link_007_to_adapter` yaw by 90/180/270° for a different
+  flange clocking.
+  The hand itself is clocked 270° about its bottom (+Z) axis relative to the
+  adapter — 90° + another 180°, equivalent to -90°, counter-clockwise looking
+  from the wrist toward the fingertips (`adapter_to_hand` yaw `4.712389`).
+  The 20×20 mm pattern is 90°-symmetric so the holes still land; if the real
+  hand is the other way, use `1.5707963`.
+  In `link_007` the hand base sits at ≈ `(23.4, -36.0, -31.3) mm` (flange
+  plane at `z=-7 mm`); the palm/finger axis is 45° off the tool axis because
+  of the elbow. Re-check the pick heights if the real clocking differs.
+- The TG-9801 visuals that the JAKA app export left on `link_007` (gripper
+  body, fingers and screws) were removed; `link_007` now carries only the
+  four JAKA wrist parts. The O6 chain itself is unchanged: its joint layout
+  matches the official `linker-bot/linkerhand-urdf` O6 right model to within
+  ≈2.3 mm (≈1.4 mm best-fit residual), and it keeps the unprefixed joint names
+  the primitive reports through `hand/info`.
 
 ## Prerequisites
 
