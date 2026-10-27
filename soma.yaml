@@ -2,7 +2,7 @@
 # hand (mounted 2026-10-15). Arm and hand are served by ONE primitive
 # (jaka_arm with end_effector: hand) because the controller permits a single
 # jkrc session and one RS485 signal table. The TG-9801 gripper variant of this
-# deployment lives in the original robot-jaka-mini repository.
+# deployment lives in the original robot-jaka-mini_with_tg9801_gripper repository.
 #
 # urdf.path points at the JAKA app export (urdf/robot.urdf), post-processed:
 # the 6 arm joints were renamed link_002_joint..link_007_joint ->

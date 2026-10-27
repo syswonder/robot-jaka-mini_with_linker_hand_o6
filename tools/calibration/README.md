@@ -46,7 +46,9 @@ config 的 `default_desktop_height`）本工具**不产出**。
 ## 臂包依赖
 
 需要含 `jaka_arm/driver.py` 的包根，按序探测：config `jaka_arm_package_path` →
-`../primitive-jaka-rbnx`（部署根同级）→ `rbnx-boot/cache/*/` → 部署根同级其它目录；
+`../primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx`（部署根同级）→
+`../primitive-jaka-mini_with_tg9801_gripper-arm_gripper-rbnx`（旧臂包）→
+`rbnx-boot/cache/*/` → 部署根同级其它目录；
 找不到会列出尝试过的路径（先跑 `bash build.sh` 或 `rbnx boot` 把包拉进 cache）。
 
 ## 行为说明（有意为之）

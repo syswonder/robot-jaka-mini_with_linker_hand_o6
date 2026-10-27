@@ -1,4 +1,4 @@
-# robot-jaka-mini 2D 手眼标定工具的配置——每个键都注明谁在读它。
+# robot-jaka-mini_with_linker_hand_o6 2D 手眼标定工具的配置——每个键都注明谁在读它。
 # 数据路径不在这里：内参在 intrinsics-data/，产物写到 artifacts/。
 
 # ===== 机械臂 =====
