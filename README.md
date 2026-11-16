@@ -34,13 +34,45 @@ the package site; `rbnx boot` fetches them into `rbnx-boot/cache/`:
 | `jaka` | [syswonder/skill-jaka-grasp-rbnx](https://github.com/syswonder/skill-jaka-grasp-rbnx) | the same six capabilities as before (grab/release/home/place/pick + `jaka_fixed_grasp`) — unchanged by the hand swap |
 
 On the deploy machine, a gitignored `robonix_manifest.local.yaml` (same
-content, `path:` instead of `url:` for the three packages above) makes
-`build.sh` / `start.sh` build and boot the sibling checkouts
+content, `path:` instead of `url:` for the packages with a sibling checkout)
+makes `build.sh` / `start.sh` build and boot the sibling checkouts
 (`../primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx`,
-`../primitive-orbbec-camera-rbnx`, `../skill-jaka-grasp-rbnx`) directly — no
-GitHub fetch, unpushed local edits take effect. `robot_description` has no
+`../primitive-orbbec-camera-rbnx`, `../primitive-audio-driver-rbnx`,
+`../primitive-audio-client-bridge-rbnx`, `../skill-jaka-grasp-rbnx`) directly —
+no GitHub fetch, unpushed local edits take effect. `robot_description` has no
 local checkout and stays `url:` (built from `rbnx-boot/cache/`; refresh with
 `rbnx update`).
+
+## Voice
+
+The manifest also declares the voice path Liaison drives
+(`mic -> asr_stream -> voiceprint -> pilot -> tts`):
+
+| package | repo | role |
+|---|---|---|
+| `audio_driver` | [syswonder/primitive-audio-driver-rbnx](https://github.com/syswonder/primitive-audio-driver-rbnx) | robot-side USB sound card (UGREEN CM564, ALSA name `Audio`) — microphone and headphone jack, 16 kHz both ways |
+| `audio_client_bridge` | [syswonder/primitive-audio-client-bridge-rbnx](https://github.com/syswonder/primitive-audio-client-bridge-rbnx) | operator PC mic/speaker over `ws://<robot>:60002` (`transport: reverse`); the current TTS sink |
+| `speech` | `services/speech` in the robonix source tree (`${ROBONIX_SOURCE_PATH}`) | ASR + TTS + wake word, `speech_backend: tencent`, `default_speaker_provider_id: audio_client_bridge` |
+
+`SPEECH_BACKEND=tencent` in `env:` keeps the build from pulling the local model
+stack (~1 GB Paraformer; Whisper's one-shot weights are 20 GB). Only the
+non-secret ASR AppID comes from the environment (`TENCENT_ASR_APPID`); the
+SecretId/SecretKey stay in the gitignored `.vlmkey` that `start.sh` sources —
+`start.sh` must be the entry point (or the vars exported some other way), or
+speech comes up without credentials.
+
+The card reports 48 kHz only, so both directions go through `plughw` pinned to
+16 kHz — Liaison's ASR/voiceprint requests are fixed at 16 kHz `pcm_s16le` and
+the TTS contract returns 16 kHz PCM. Capture is mono, playback is stereo
+(plughw upmixes). Verified 2026-11-16 through the primitive's `mic` contract:
+16 kHz capture with speech at rms ~2600 against a noise floor of ~40, and
+Tencent ASR transcribed the captured PCM back to the spoken sentence.
+
+Input and output are split across the two providers: the **microphone** runs on
+the robot's own card, while **TTS still goes to the operator PC** because the
+card's headphone jack has no speaker attached. Once speakers are plugged into
+that jack, change `speech.config.default_speaker_provider_id` to `audio_driver`
+and TTS plays from the robot.
 
 ## One primitive, one jkrc session
 

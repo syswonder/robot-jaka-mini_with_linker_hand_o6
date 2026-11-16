@@ -21,7 +21,8 @@ export PATH="$VENV/bin:$PATH"
 
 # Local-first: prefer the gitignored path-based manifest (builds the sibling
 # checkouts ../primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx (arm +
-# O6 hand in one primitive), ../primitive-orbbec-camera-rbnx and
+# O6 hand in one primitive), ../primitive-orbbec-camera-rbnx,
+# ../primitive-audio-driver-rbnx, ../primitive-audio-client-bridge-rbnx and
 # ../skill-jaka-grasp-rbnx directly — no GitHub clone / freshness fetch, so
 # unpushed local edits take effect). Fall back
 # to the committed url-based manifest on machines without it.
