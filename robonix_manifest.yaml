@@ -186,9 +186,10 @@ skill:
   # place/pick + jaka_fixed_grasp): the hand swap changes the body and the
   # primitive, not the skill surface. The skill still drives its gripper via
   # `gripper_joint`; jaka_arm's hand mode maps that onto the O6 open/full-grasp
-  # poses. `gripper_settle_s` is longer than the TG-9801 default because the O6
-  # three-frame motion takes ~1 s plus the finger travel. See the skill repo's
-  # config.spec for every key.
+  # poses. `gripper_settle_s` is shortened from the TG-9801 default: the O6
+  # three-frame write is ~1 s and the width verdict that follows already waits
+  # for a settled reading (see the hand-compatibility block below). See the
+  # skill repo's config.spec for every key.
   - name: jaka
     url: https://github.com/syswonder/skill-jaka-grasp-rbnx
     branch: main
@@ -221,11 +222,18 @@ skill:
       travel_offset: 0.08
       grasp_rpy: [3.14159265, 0.0, 0.0]
       # ── hand compatibility (the O6 has no metre width) ──
-      # The skill publishes gripper_joint (0.098 = open, 0 = grip) five times;
-      # jaka_arm's hand mode maps each publish to the O6 open/grasp pose (the
-      # repeated poses settle). Give the O6 time to finish closing before the
-      # lift starts.
-      gripper_settle_s: 3.0
+      # One publish is enough: jaka_arm's hand mode maps gripper_joint
+      # (0.098 = open, 0 = grip) to the O6 open/grasp pose, and each command
+      # already writes speed -> torque -> angle itself. The former 5 repeats
+      # only queued ~5 x 1 s of three-frame writes on the single command
+      # worker, which holds the driver lock, so hand feedback froze for the
+      # whole drain — inside the grasp-verification wait before lift
+      # (2026-11-17). 1.0 s still covers the ~1 s write plus most of the
+      # finger travel; the width verdict that follows waits for a settled
+      # reading anyway. If a close is ever missed on the RS485 link, raise
+      # gripper_repeats to 3 first, not the settle.
+      gripper_settle_s: 1.0
+      gripper_repeats: 1
       # ── detection backend ──
       # yolo = in-process yolo11-obb (classes: carrot/potato/tomato; weights
       # from the agilex deploy, best.pt) with two-frame consistency and
