@@ -235,11 +235,14 @@ skill:
       gripper_settle_s: 1.0
       gripper_repeats: 1
       # ── detection backend ──
-      # yolo = in-process yolo11-obb (classes: carrot/potato/tomato; weights
-      # from the agilex deploy, best.pt) with two-frame consistency and
-      # gripper-yaw alignment to the object's long edge. Set to `vlm` to go
-      # back to the open-vocabulary multimodal path (keys below).
-      detect_scheme: yolo
+      # auto = per-request routing: a name the yolo weights cover
+      # (carrot/potato/tomato, plus the aliases below) takes the in-process
+      # yolo11-obb path — two-frame consistency + gripper-yaw alignment to
+      # the object's long edge; any other name takes the open-vocabulary VLM
+      # path (keys below, no rotation -> fixed grasp_rpy). A yolo miss is
+      # not retried through the VLM, and unloadable weights fall back to the
+      # VLM. `yolo` / `vlm` still pin one backend.
+      detect_scheme: auto
       # Machine-local weights file (yolo11-obb, e.g. the agilex fruit
       # best.pt): export YOLO_MODEL_PATH (see .vlmkey). Unset -> pick
       # reports "unavailable" (yolo_model_path missing).
@@ -255,11 +258,13 @@ skill:
       # euler family. If the fingers land 90/180 deg off the long edge,
       # tune by ±90 and reboot.
       grasp_yaw_offset_deg: -90
-      # VLM locator (fallback backend, detect_scheme: vlm). Reuses the deploy
-      # VLM key (start.sh sources .vlmkey; rbnx expands ${VAR}). NOTE:
-      # VLM_MODEL=deepseek-v4-flash is TEXT-ONLY (the pilot planner). Live
-      # pick DETECTION needs a MULTIMODAL model (image input) — point
-      # vlm_model at a vision model on-site.
+      # VLM locator (the open-vocabulary path; under detect_scheme: auto it
+      # serves every name the weights do not cover). Reuses the deploy
+      # VLM key (start.sh sources .vlmkey; rbnx expands ${VAR}). The model
+      # MUST accept image input. Measured 2026-11-12 on api.deepseek.com:
+      # deepseek-v4-flash (the VLM_MODEL in .vlmkey) locates a known
+      # 1280x720 target within ~2 px in ~1.3 s; deepseek-v4-pro REJECTS
+      # image input ("can't see the image") — never point vlm_model there.
       vlm_base_url: ${VLM_BASE_URL}
       vlm_api_key: ${VLM_API_KEY}
       vlm_model: ${VLM_MODEL}

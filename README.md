@@ -155,9 +155,9 @@ frame → detect → a calibrated **2D hand-eye homography** maps the bbox centr
 to arm `base_link` XY → grasp at `(x, y, desktop_height)` with a vertical-down
 orientation. It reuses the same grasp segment as `grab`.
 
-Two detection backends (`detect_scheme` in the skill config):
+Three `detect_scheme` modes (this deploy runs `auto`):
 
-- **`yolo`** (deploy default): in-process yolo11-obb — the fruit model
+- **`yolo`**: in-process yolo11-obb — the fruit model
   (`carrot`/`potato`/`tomato`) reused from the agilex deploy at
   `robot-agilex-robonix/host-services/yolo/weights/best.pt` (point the
   `YOLO_MODEL_PATH` env var at it — the manifest forwards it to
@@ -168,6 +168,12 @@ Two detection backends (`detect_scheme` in the skill config):
   default -90 = this arm's tuned value).
 - **`vlm`**: open-vocabulary multimodal detection (pixel bbox, no rotation →
   fixed `grasp_rpy`).
+- **`auto`** (deploy): a name the weights cover (fruit + aliases) takes yolo;
+  anything else ("blue block", "蓝色方块") takes the VLM. A yolo miss is not
+  retried through the VLM, so "nothing on the table" stays an honest answer;
+  unloadable weights degrade to the VLM. Measured 2026-11-12:
+  `deepseek-v4-flash` accepts images (~2 px error on a known 1280×720 target,
+  ~1.3 s); `deepseek-v4-pro` rejects them — never point `vlm_model` there.
 
 **Calibration is required and on-site.** `pick` is unavailable until you set,
 in `robonix_manifest.yaml`'s `skill: - name: jaka` config block:
