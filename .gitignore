@@ -5,16 +5,12 @@ logs/
 !.vlmkey.example
 robonix_manifest.local.yaml
 
-# tools/calibration/：标定工具的运行产物、内参与日志（.venv/ 已被上面的规则覆盖）
-#   artifacts/*.npy        —— 标定结果与中间采点，重跑标定即可再生成
-#   intrinsics-data/*.npy  —— 相机内参/畸变，值与清单 camera_matrix/dist_coeffs 相同，
-#                             首次克隆或换相机后按清单数值重建（见工具 README）
-#   Log/OrbbecSDK.log.txt  —— Orbbec SDK 运行日志（默认 ./Log，100 MB × 3 循环）
 tools/calibration/artifacts/
 tools/calibration/intrinsics-data/
 tools/calibration/Log/
 __pycache__/
 *.pyc
 
-# DSH code index cache: regenerated per workspace, never commit
 .dsh-code-index/
+
+.portal/
