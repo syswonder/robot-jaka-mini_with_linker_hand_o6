@@ -182,9 +182,9 @@ service:
       default_speaker_provider_id: audio_client_bridge
 
 skill:
-  # The same six capabilities as the TG-9801 deployment (grab/release/home/
-  # place/pick + jaka_fixed_grasp): the hand swap changes the body and the
-  # primitive, not the skill surface. The skill still drives its gripper via
+  # The same five capabilities as the TG-9801 deployment (grab/release/home/
+  # place/pick): the hand swap changes the body and the primitive, not the
+  # skill surface. The skill still drives its gripper via
   # `gripper_joint`; jaka_arm's hand mode maps that onto the O6 open/full-grasp
   # poses. `gripper_settle_s` is shortened from the TG-9801 default: the O6
   # three-frame write is ~1 s and the width verdict that follows already waits
@@ -204,16 +204,11 @@ skill:
       # the longer O6 palm into the table), hover = desktop + 0.15 (AIIT's
       # catch_raise_height on the same arm + hand).
       hover_pose: [0.20, 0.00, 0.29, 3.14159265, 0.0, 0.0]
-      grasp_pose: [0.20, 0.00, 0.14, 3.14159265, 0.0, 0.0]
-      # ── fixed_grasp (demo, 固定抓取): fixed-pose pick-and-place ──
-      # Both REQUIRED for jaka_fixed_grasp; until set it reports unavailable
-      # (grab/release/pick unaffected). Each hover is z + travel_offset.
-      fixed_grasp_pose: [0.15, 0.18, 0.14, 3.14159265, 0.0, 0.0]
-      fixed_place_pose: [-0.15, 0.18, 0.14, 3.14159265, 0.0, 0.0]
+      grasp_pose: [0.20, 0.00, 0.135, 3.14159265, 0.0, 0.0]
       # ── pick (perception) ──
       camera_provider_id: orbbec_camera
       # Desktop z as in grab: 0.14 (AIIT-calibrated for the same hand).
-      desktop_height: 0.14
+      desktop_height: 0.135007
       # AIIT's catch_raise_height=0.15 is unreachable over the pick camera
       # field: hover = 0.14 + 0.15 = 0.29, while controller IK caps hover z at
       # ~0.23 at radial ~0.368 m (2026-10-16 kine_inverse probe: 0.225 has a
