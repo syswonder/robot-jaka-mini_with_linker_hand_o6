@@ -1,5 +1,13 @@
 # JAKA Mini 2D 手眼标定台（tools/calibration）
 
+宿主直连硬件的标定工具，两套入口并存：
+
+- **网页标定台**（推荐，`station/`，默认 `:8080`）：内参 → 手眼 → 验证 三页，按钮操作，
+  移植自 `robot-agilex-robonix` 的标定台（公共层 `common/` 原样，臂侧换成 JAKA）。
+- **旧 CLI 工具**（`calibrate_handeye_2d.py`，cv2 窗口镜像到 `:8079`）：保留作回退路径。
+
+两者共用 `intrinsics-data/` 与 `artifacts/` 的产物文件，互操作。
+
 宿主直连硬件的标定小工具：**点画面 → 按住末端 free 键把夹爪尖拖到该点 → 空格记录**，
 采够点后 RANSAC 拟合"像素 → 臂基座平面"的单应矩阵，即 `jaka_pick` 消费的
 `homography_matrix`。无头机器上画面走浏览器（Flask MJPEG，`:8079`）。
@@ -12,7 +20,58 @@
   首次克隆或换相机后，按清单数值存成 `intrinsics-data/{camera_matrix,dist_coeffs}.npy`
   （numpy 数组，形状 3×3 / `(8,)`）即可。本工具**不标内参**。
 
-## 跑起来
+## 网页标定台（station/）
+
+```bash
+bash tools/calibration/setup_venv.sh      # 已有 .venv 则复用（flask/scipy 等已含）
+cd tools/calibration
+.venv/bin/python station/app.py --port 8080
+# 浏览器打开 http://<本机IP>:8080
+```
+
+同样要求 robonix 停机、急停在手、工作区清空；退出用 Ctrl-C（别 kill）。
+前置：Orbbec 相机需要 udev 规则，否则相机打不开（表现与 `rbnx boot` 的相机超时同源）：
+
+```bash
+sudo bash rbnx-boot/cache/primitive-orbbec-camera-rbnx/src/OrbbecSDK_ROS2/orbbec_camera/scripts/install_udev_rules.sh
+```
+
+三个页面：
+
+| 页面 | 干什么 | 产物 |
+|---|---|---|
+| 内参 | 棋盘格采图 → 解算 K/D；或「从清单导入内参」沿用清单现值 | `intrinsics-data/{camera_matrix,dist_coeffs}.npy` |
+| 手眼 | 点画面 → 按 free 键拖夹爪尖对准 → 记录 → 松开 → 回起始位姿；≥4 点后拟合 | `artifacts/2d_homography.npy` 等 + 报告 |
+| 测高 | 六指 0.2 手型下指尖碰桌面的 z；另可手填抓取/悬停 z → 写入清单 | `artifacts/heights.json` |
+| 验证 | 点一个点 → 臂尖移过去，肉眼看落点 | 无 |
+
+测高页的取值规则：
+
+- **桌面 z**：指尖刚好触桌面时的 TCP z（六指 0.2 手型），写 `desktop_height`（place 用）。
+- **抓取 z / 悬停 z**：抓取时手是张开的，指尖位置与 0.2 手型不同，所以页面上
+  单独给两个输入框，可点「填入清单现值」后改，随同一次「写入清单」写进
+  `grasp_pose[2]` / `hover_pose[2]`。
+
+写入是**行级替换**：只改这三个 z 数值，清单里的注释、x/y/rpy 都原样保留。
+
+要点：
+
+- 「一键」指网页按钮（记录 / 拟合 / 移过去 / 解算），**采集仍是人工拖拽示教**——
+  agilex 参考实现也没有自动采点。
+- 手眼页被内参 guard：没有内参不能开始（画面必须先去畸变，与运行时一致）。
+  清单里已有 AIIT 内参时，直接在内参页点「从清单导入内参」。
+- 起始位姿 = `CalibArm.prepare_for_manual_teach()`（笛卡尔 `[0.2, 0, 0.25]`、夹爪朝下），
+  与旧工具一致；自动回位失败时用 free 按钮手拖回观察位即可。
+- 每页底部有「结束本步骤（释放相机/臂）」：标定台占着相机时，`rbnx boot` 的相机
+  原语会在 30 s sentinel 超时后整栈失败。**注意这会断开控制器并把臂回零**（与旧工具
+  ESC 退出同一条收尾路径），确认臂周围无人再点。
+- 拟合结果在页面里直接给出**可直贴的 YAML 块**，仍需手工抄进
+  `robonix_manifest.yaml` 与 `robonix_manifest.local.yaml`（工具不改清单）。
+- 端口：网页标定台 `8080`，旧 CLI 的 cv2 镜像 `8079`，两者可同时开（但硬件仍是独占）。
+
+页面里的硬件独占由 `Rig` 管理：同一时刻只有一个步骤能用相机/臂，别的步骤会显示
+「谁占着」，可强制接管。
+
 
 标定期间 **robonix 必须停机**（相机/控制器独占；直连 jkrc，`motion_enabled` 门不适用），
 急停在手、工作区清空。
@@ -40,8 +99,9 @@ cd tools/calibration
 
 工具打印**可直贴的 YAML 行**，手工抄进 `skill: name: jaka` 的 `homography_matrix`——
 **`robonix_manifest.yaml` 和 `robonix_manifest.local.yaml` 两个都要改**；误差打印留档即可。
-`camera_matrix` / `dist_coeffs`（随附数据）与 `desktop_height`（手工测量，必须等于
-config 的 `default_desktop_height`）本工具**不产出**。
+`camera_matrix` / `dist_coeffs` 与 `desktop_height`（手工测量，必须等于
+config 的 `default_desktop_height`）本 CLI **不产出**；数值以清单为准，
+网页标定台可点「从清单导入内参」生成 `.npy`（`intrinsics-data/` 不入库）。
 
 ## 臂包依赖
 

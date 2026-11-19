@@ -191,11 +191,20 @@ the combined package's `JakaDriver` with `end_effector: hand` (probed from the
 sibling checkout or `rbnx-boot/cache/`), so the tool's open/close gesture
 drives the O6 open/full-grasp poses over the same jkrc connection.
 
-Run it with robonix **stopped** (the camera and the controller are
+There are two entry points sharing the same artifacts:
+
+- **Web station** (`tools/calibration/station/`, port 8080): button-driven
+  intrinsics → hand-eye → verify pages, ported from `robot-agilex-robonix`.
+  `from-manifest` intrinsics import, self-check page, hardware-owner lock.
+- **CLI bench** (`calibrate_handeye_2d.py`, cv2 mirror on port 8079): the
+  original keyboard flow, kept as the fallback.
+
+Run either with robonix **stopped** (the camera and the controller are
 single-owner), workspace clear, estop at hand:
 
 ```bash
 bash tools/calibration/setup_venv.sh
+cd tools/calibration && .venv/bin/python station/app.py --port 8080          # web station
 cd tools/calibration && .venv/bin/python calibrate_handeye_2d.py            # default: calibrate
 cd tools/calibration && .venv/bin/python calibrate_handeye_2d.py --mode test
 ```

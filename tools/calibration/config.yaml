@@ -12,6 +12,10 @@ jaka_arm_package_path: ""
 # JakaDriver 运动参数（标定想更慢更稳就调小）
 joint_speed_rad_s: 1.0
 linear_speed_mm_s: 100.0
+# 测高页「移到该位置」的**默认**直线速度（mm/s）——页面输入框以此为初值，
+# 每次移动按输入框的值临时生效、移动后立即恢复上面的 linear_speed_mm_s。
+# 指尖要在桌面附近毫米级挪动，100 mm/s 太快，默认给 10。
+measure_z_linear_speed_mm_s: 10.0
 # move_to 的 RZ 偏移（度）——与清单 skill.jaka.config.grasp_yaw_offset_deg 同源
 jaka_catch_rot_offset_deg: -90
 # JakaDriver 的末端模式：gripper = TG-9801，hand = LinkerHand O6。
@@ -25,7 +29,7 @@ hand_type: right
 # 验证模式映射点的 z（米）——必须与清单 skill.jaka.config.desktop_height 一致
 # 2026-10-16 O6 换装后 0.125 → 0.14（AIIT 同款臂+手实测值；O6 手掌比 TG-9801
 # 指爪长，同高度会压桌）。
-default_desktop_height: 0.14
+default_desktop_height: 0.135007
 
 # ===== 相机与显示 =====
 # utils/cv2_display.py 的网页显示端口；置空则用 OpenCV 窗口（无显示器环境会失败）
