@@ -1,0 +1,11 @@
+# build.sh products (ch341.c is fetched, the rest is compiled)
+ch341.c
+*.o
+*.mod
+*.mod.c
+*.ko
+Module.symvers
+modules.order
+.*.cmd
+key.pem
+cert.pem

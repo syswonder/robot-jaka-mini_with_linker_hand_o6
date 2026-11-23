@@ -26,6 +26,18 @@ systemctl restart rbnx-zenoh-router || true
 sleep 1
 systemctl --no-pager --lines=5 status rbnx-zenoh-router || true
 
+echo "[setup] installing udev rule for the CH340 USB hand adapter"
+# The O6 hand (hand_bus: usb) is a CH340 serial adapter (1a86:7523). The
+# stock rule leaves it root:dialout 0660, which needs a dialout re-login to
+# take effect. Give the device to `plugdev` instead — the login user is
+# normally already in it, and the provider opens the port at every boot.
+cat > /etc/udev/rules.d/70-ch340-o6-hand.rules <<'EOF'
+# LinkerHand O6 USB serial adapter (CH340)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", GROUP="plugdev", MODE="0660", SYMLINK+="ttyO6"
+EOF
+udevadm control --reload-rules
+udevadm trigger --subsystem-match=tty --action=change || true
+
 echo
 echo "[setup] done. Reboot the stack with either:"
 echo "  bash start.sh                     # from any shell"
