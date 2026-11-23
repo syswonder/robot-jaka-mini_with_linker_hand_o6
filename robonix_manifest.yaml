@@ -81,7 +81,7 @@ primitive:
   # hand joints next to the six arm joints.
   - name: jaka_arm
     url: https://github.com/syswonder/primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx
-    branch: feat/o6-usb-serial
+    branch: main
     config:
       ip: 10.5.5.100
       # 2026-10-15: LinkerHand O6 on the end face (was TG-9801). Set
