@@ -87,5 +87,12 @@ EOF
 
 ## 回退
 
-改回 `hand_bus: controller`（或删掉这一行，默认就是 `controller`），把 A/B 线接回
-控制器末端 RS485L 即可，软件不用改其他东西。
+本仓 `robonix_manifest.yaml` 默认就是 `hand_bus: controller`（注释掉了 `usb` 那两行），
+把这两行换回来：
+
+```yaml
+      hand_bus: usb
+      hand_port: /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+```
+
+再把 A/B 线接回控制器末端 RS485L 即可，软件不用改其他东西。
