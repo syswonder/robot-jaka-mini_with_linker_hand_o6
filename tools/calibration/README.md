@@ -40,7 +40,7 @@ sudo bash rbnx-boot/cache/primitive-orbbec-camera-rbnx/src/OrbbecSDK_ROS2/orbbec
 
 | 页面 | 干什么 | 产物 |
 |---|---|---|
-| 内参 | 棋盘格采图 → 解算 K/D；或「从清单导入内参」沿用清单现值 | `intrinsics-data/{camera_matrix,dist_coeffs}.npy` |
+| 内参 | 棋盘格采图 → 解算 K/D → 「写入清单」写回 `camera_matrix` / `dist_coeffs`；或「从清单导入内参」沿用清单现值 | `intrinsics-data/{camera_matrix,dist_coeffs}.npy` + 两份清单 |
 | 手眼 | 点画面 → 按 free 键拖夹爪尖对准 → 记录 → 松开 → 回起始位姿；≥4 点后拟合 | `artifacts/2d_homography.npy` 等 + 报告 |
 | 测高 | 六指 0.2 手型下指尖碰桌面的 z；另可手填抓取/悬停 z → 写入清单 | `artifacts/heights.json` |
 | 验证 | 点一个点 → 臂尖移过去，肉眼看落点 | 无 |
@@ -54,6 +54,10 @@ sudo bash rbnx-boot/cache/primitive-orbbec-camera-rbnx/src/OrbbecSDK_ROS2/orbbec
 
 写入是**行级替换**：只改这三个 z 数值，清单里的注释、x/y/rpy 都原样保留。
 
+内参页的「写入清单（K / D）」同理：把 `intrinsics-data/` 里的 K/D 行级写回两份清单的
+`skill: name: jaka` 段（K 保持多行、D 保持原写法，注释不动）；解算结果被判为不可信
+（焦距与画面宽度明显不符）时拒绝写入。
+
 要点：
 
 - 「一键」指网页按钮（记录 / 拟合 / 移过去 / 解算），**采集仍是人工拖拽示教**——
@@ -65,8 +69,9 @@ sudo bash rbnx-boot/cache/primitive-orbbec-camera-rbnx/src/OrbbecSDK_ROS2/orbbec
 - 每页底部有「结束本步骤（释放相机/臂）」：标定台占着相机时，`rbnx boot` 的相机
   原语会在 30 s sentinel 超时后整栈失败。**注意这会断开控制器并把臂回零**（与旧工具
   ESC 退出同一条收尾路径），确认臂周围无人再点。
-- 拟合结果在页面里直接给出**可直贴的 YAML 块**，仍需手工抄进
-  `robonix_manifest.yaml` 与 `robonix_manifest.local.yaml`（工具不改清单）。
+- 手眼拟合与内参仍需手动确认后才进清单：手眼页给出**可直贴的 YAML 块**，仍需手工抄进
+  `robonix_manifest.yaml` 与 `robonix_manifest.local.yaml`（手眼不改清单）；内参点
+  「写入清单（K / D）」即可。
 - 端口：网页标定台 `8080`，旧 CLI 的 cv2 镜像 `8079`，两者可同时开（但硬件仍是独占）。
 
 页面里的硬件独占由 `Rig` 管理：同一时刻只有一个步骤能用相机/臂，别的步骤会显示

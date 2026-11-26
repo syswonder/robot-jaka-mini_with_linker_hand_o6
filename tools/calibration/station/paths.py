@@ -138,6 +138,71 @@ def _rewrite_pose_z(path: Path, key: str, z: float) -> bool:
     return True
 
 
+def _fmt_yaml_value(value) -> str:
+    if isinstance(value, (list, tuple)):
+        return "[" + ", ".join(_fmt_yaml_value(v) for v in value) + "]"
+    return repr(float(value))
+
+
+def _rewrite_list(path: Path, key: str, values) -> bool:
+    """把单行 `key: [..]` 或多行 `key:` + `- ...` 的列表值原地替换。
+
+    只改这一个键的值行：缩进、其它内容原样保留（同 `_rewrite_line`）。
+    找不到该键或文件不存在时返回 False。
+    """
+    if not path.exists():
+        return False
+    lines = path.read_text(encoding="utf-8").splitlines()
+    key_re = re.compile(rf"^(?P<ind>[ \t]*){re.escape(key)}:[ \t]*(?P<rest>.*)$")
+    for i, line in enumerate(lines):
+        m = key_re.match(line)
+        if not m:
+            continue
+        ind, rest = m.group("ind"), m.group("rest")
+        if rest.split("#", 1)[0].strip().startswith("["):
+            # 行内写法：整行替换
+            lines[i] = f"{ind}{key}: {_fmt_yaml_value(list(values))}"
+        else:
+            # 多行写法：吃掉本键下方缩进更深的 `- ...` 行
+            j = i + 1
+            while j < len(lines):
+                mv = re.match(r"^([ \t]*)-", lines[j])
+                if not mv or len(mv.group(1)) <= len(ind):
+                    break
+                j += 1
+            if j == i + 1:
+                return False
+            item_ind = ind + "  "
+            lines[i + 1:j] = [f"{item_ind}- {_fmt_yaml_value(v)}" for v in values]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return True
+    return False
+
+
+def write_manifest_intrinsics(camera_matrix, dist_coeffs) -> list[str]:
+    """把 camera_matrix / dist_coeffs 写进两份清单（存在的那份/那几份），返回改写的文件。
+
+    行级替换，只动这两个键的值；K 保持多行、D 保持原写法（行内/多行）。
+    一处都没改到时抛 RuntimeError。
+    """
+    K = np.asarray(camera_matrix, dtype=np.float64)
+    D = np.asarray(dist_coeffs, dtype=np.float64).ravel()
+    if K.shape != (3, 3):
+        raise ValueError(f"camera_matrix 形状是 {K.shape}，应为 (3, 3)")
+    written: list[str] = []
+    for path in (DEPLOY_ROOT / "robonix_manifest.local.yaml",
+                 DEPLOY_ROOT / "robonix_manifest.yaml"):
+        if not path.exists():
+            continue
+        changed = _rewrite_list(path, "camera_matrix", K.tolist())
+        changed = _rewrite_list(path, "dist_coeffs", D.tolist()) or changed
+        if changed:
+            written.append(path.name)
+    if not written:
+        raise RuntimeError("两份清单里都没找到 camera_matrix / dist_coeffs")
+    return written
+
+
 def _write_manifests(edits: list[tuple[str, str, float]]) -> list[str]:
     """对两份清单（存在的那份/那几份）执行 [(kind, key, value)] 行级改写。
 

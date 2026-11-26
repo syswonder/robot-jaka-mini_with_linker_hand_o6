@@ -53,6 +53,7 @@ class IntrinsicsStep(Step):
       <button class="primary" onclick="act('capture')">采集当前画面</button>
       <button onclick="act('solve')">解算 K/D</button>
       <button onclick="act('import_manifest')">从清单导入内参</button>
+      <button onclick="act('write_manifest')">写入清单（K / D）</button>
       <button class="danger" onclick="if(confirm('删掉已采的所有图片？')) act('reset')">清空图片</button>
     </p>
     <h2>解算结果</h2>
@@ -221,6 +222,25 @@ setInterval(tick, 900); tick();
             self.hint = f"已从 {src} 导入内参（fx={K[0, 0]:.2f} fy={K[1, 1]:.2f}）。"
             return jsonify({"ok": True, "hint": self.hint, "result_text": self._result_text()})
 
+        @app.post(f"/{self.name}/write_manifest")
+        def _write_manifest():
+            """把已有内参（刚解算的或从清单导入的 .npy）写回两份清单。"""
+            if not self._has_files():
+                return jsonify({"ok": False, "error": "还没有内参——先「解算 K/D」或「从清单导入内参」"})
+            K = np.load(self.paths.CAMERA_MATRIX)
+            D = np.load(self.paths.DIST_COEFFS)
+            warn = self._implausible_warning(K)
+            if warn:
+                return jsonify({"ok": False, "error": "这组内参不可信，未写入清单：\n" + warn})
+            try:
+                written = self.paths.write_manifest_intrinsics(K, D)
+            except Exception as e:  # noqa: BLE001
+                return jsonify({"ok": False, "error": f"写入失败：{e}"})
+            self.hint = (f"已写入 camera_matrix / dist_coeffs（改到 {'、'.join(written)}）；"
+                         "重启 start.sh 生效。")
+            print(self.hint, flush=True)
+            return jsonify({"ok": True, "hint": self.hint, "written": written})
+
         @app.post(f"/{self.name}/reset")
         def _reset():
             # 不抢硬件：只是删掉采集的图片，不碰相机
@@ -279,7 +299,7 @@ setInterval(tick, 900); tick();
             lines = [
                 f"已有内参：fx={K[0, 0]:.2f} fy={K[1, 1]:.2f} cx={K[0, 2]:.2f} cy={K[1, 2]:.2f}",
                 f"采过的图片：{len(self._images())} 张",
-                "待抄进清单: camera_matrix / dist_coeffs",
+                "点「写入清单」同步 camera_matrix / dist_coeffs 到两份清单",
             ]
             warn = self._implausible_warning(K)
             if warn:
