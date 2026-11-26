@@ -141,7 +141,12 @@ def _rewrite_pose_z(path: Path, key: str, z: float) -> bool:
 def _fmt_yaml_value(value) -> str:
     if isinstance(value, (list, tuple)):
         return "[" + ", ".join(_fmt_yaml_value(v) for v in value) + "]"
-    return repr(float(value))
+    s = repr(float(value))
+    # repr 可能给出 `2e-05` 这种尾数不带小数点的指数写法，PyYAML（YAML 1.1）
+    # 会按字符串读回；补成 `2.0e-05`，PyYAML 与 rbnx 的 JSON 序列化都认作浮点。
+    if "e" in s and "." not in s.split("e", 1)[0]:
+        s = s.replace("e", ".0e", 1)
+    return s
 
 
 def _rewrite_list(path: Path, key: str, values) -> bool:
