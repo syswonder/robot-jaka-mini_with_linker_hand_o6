@@ -13,6 +13,7 @@ import sys
 from scipy.spatial.transform import Rotation as R
 
 from utils.config_getter import get_config_value
+from utils.deploy_manifest import read_arm_ip
 
 TOOL_ROOT = os.path.dirname(os.path.abspath(__file__))
 DEPLOY_ROOT = os.path.dirname(os.path.dirname(TOOL_ROOT))
@@ -70,7 +71,7 @@ class CalibArm:
         # 下是 O6 的张开/全握姿势）。
         self._end_effector = get_config_value("end_effector", "gripper")
         self._driver = JakaDriver(
-            get_config_value("arm_port"),
+            read_arm_ip(),
             joint_speed_rad_s=get_config_value("joint_speed_rad_s", 1.0),
             linear_speed_mm_s=get_config_value("linear_speed_mm_s", 100.0),
             end_effector=self._end_effector,

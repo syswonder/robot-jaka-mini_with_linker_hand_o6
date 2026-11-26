@@ -2,9 +2,9 @@
 # 数据路径不在这里：内参在 intrinsics-data/，产物写到 artifacts/。
 
 # ===== 机械臂 =====
-# JAKA 控制器 IP（calib_arm.py 交给臂包的 JakaDriver 登录；
-# tools/jaka_estop_recover.py 直连裸 jkrc 也读这个键）
-arm_port: 10.5.5.100
+# JAKA 控制器 IP 不在本文件：calib_arm.py / tools/jaka_estop_recover.py 都直接读
+# 清单 primitive: name: jaka_arm → config: ip（唯一出处，见
+# utils/deploy_manifest.read_arm_ip）。
 # 含 jaka_arm/driver.py 的臂包根目录；空 = 自动探测
 # （sibling ../primitive-jaka-mini_with_linker_hand_o6-arm_hand-rbnx →
 #   rbnx-boot/cache/* → 部署根同级目录）

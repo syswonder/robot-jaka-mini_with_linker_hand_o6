@@ -4,7 +4,8 @@
 # 与 AIIT-Roboarm/tools/jaka_estop_recover.py 同源，差异只在取依赖：直连控制器
 # 裸 jkrc（不经 robonix，motion_enabled 门不适用）——复位期间 robonix 应停机。
 # 臂驱动不随工具分发：臂包探测复用 tools/calibration/calib_arm（jkrc SDK 随之经
-# 包内平台加载器就绪），配置（arm_port）复用 tools/calibration/config.yaml。
+# 包内平台加载器就绪），控制器 IP 复用清单 primitive: name: jaka_arm → config: ip
+# （utils.deploy_manifest.read_arm_ip）。
 # 用标定 venv 跑（Python 3.10，jkrc.so 只认 3.10）：
 #   tools/calibration/.venv/bin/python tools/jaka_estop_recover.py
 import os
@@ -20,14 +21,14 @@ sys.path.insert(0, CALIB_ROOT)
 # jkrc 随之就绪；找不到臂包会给出补救指引（jkrc 二进制在臂包里，不随本工具分发）。
 import calib_arm  # noqa: F401
 import jkrc
-from utils.config_getter import get_config_value
+from utils.deploy_manifest import read_arm_ip
 
 ABS = 0  # jkrc 绝对运动
 HOME_SPEED_RAD_S = 0.3  # 回零速度，慢速防止急停后姿态异常时扫到物体
 
 
 def main():
-    arm_ip = get_config_value("arm_port")
+    arm_ip = read_arm_ip()
     robot = jkrc.RC(arm_ip)
     ret = robot.login()
     if ret[0] != 0:
