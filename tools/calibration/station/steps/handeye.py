@@ -1,7 +1,7 @@
 # Description: 本部署的手眼步骤——把公共实现（common/steps/handeye.py）绑到产物路径。
 #
 # 相机固定在顶部：臂回到起始位姿只是为了让操作有个固定起点，画面不影响。
-# 起始位姿是 CalibArm 的 prepare 位姿（笛卡尔 [0.2, 0, 0.25]、夹爪朝下），
+# 起始位姿是 CalibArm 的 prepare 位姿（xyz 读清单 skill.jaka → hover_pose、夹爪朝下），
 # 与旧 CLI 工具一致；示教是按住末端 free 按钮手拖。
 import paths
 from common.steps.handeye import HandeyeStep as _HandeyeStep

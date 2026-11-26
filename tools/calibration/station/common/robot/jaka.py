@@ -8,8 +8,8 @@
 #   * 示教不是"进/出示教模式"，而是操作员按住末端 free 按钮（硬件）。所以 status()
 #     返回的 teach_status 只是 is_in_drag_mode() 的折射——手眼页用它做"还在拖动中"
 #     的提示，不用它做硬性状态机。
-#   * 起始位姿不是关节角文件，而是 CalibArm.prepare_for_manual_teach()（笛卡尔
-#     [0.2, 0, 0.25]、夹爪朝下）——与旧 CLI 工具行为一致，标定记录点从这里出发。
+#   * 起始位姿不是关节角文件，而是 CalibArm.prepare_for_manual_teach()（xyz 读清单
+#     skill.jaka → hover_pose、夹爪朝下）——与旧 CLI 工具行为一致，标定记录点从这里出发。
 #   * 每次动臂前 best-effort 查急停/拖动状态（jkrc 的返回值形状不保证，解析失败
 #     只记日志不阻断），急停时拒绝移动。
 import numpy as np

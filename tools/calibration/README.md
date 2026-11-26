@@ -64,8 +64,8 @@ sudo bash rbnx-boot/cache/primitive-orbbec-camera-rbnx/src/OrbbecSDK_ROS2/orbbec
   agilex 参考实现也没有自动采点。
 - 手眼页被内参 guard：没有内参不能开始（画面必须先去畸变，与运行时一致）。
   清单里已有 AIIT 内参时，直接在内参页点「从清单导入内参」。
-- 起始位姿 = `CalibArm.prepare_for_manual_teach()`（笛卡尔 `[0.2, 0, 0.25]`、夹爪朝下），
-  与旧工具一致；自动回位失败时用 free 按钮手拖回观察位即可。
+- 起始位姿 = `CalibArm.prepare_for_manual_teach()`（xyz 读清单 `skill.jaka.config.hover_pose`，
+  夹爪朝下），与旧工具一致；自动回位失败时用 free 按钮手拖回观察位即可。
 - 每页底部有「结束本步骤（释放相机/臂）」：标定台占着相机时，`rbnx boot` 的相机
   原语会在 30 s sentinel 超时后整栈失败。**注意这会断开控制器并把臂回零**（与旧工具
   ESC 退出同一条收尾路径），确认臂周围无人再点。

@@ -21,7 +21,7 @@ sys.path.insert(0, CALIB_ROOT)
 # jkrc 随之就绪；找不到臂包会给出补救指引（jkrc 二进制在臂包里，不随本工具分发）。
 import calib_arm  # noqa: F401
 import jkrc
-from utils.deploy_manifest import read_arm_ip
+from utils.deploy_manifest import read_arm_ip, read_shutdown_home_joints
 
 ABS = 0  # jkrc 绝对运动
 HOME_SPEED_RAD_S = 0.3  # 回零速度，慢速防止急停后姿态异常时扫到物体
@@ -72,8 +72,9 @@ def main():
         ret = robot.enable_robot()
     time.sleep(1)
 
-    input("\n确认机械臂回 Home 路径无障碍后按回车（将慢速回零位）...")
-    ret = robot.joint_move([0.0] * 6, ABS, True, HOME_SPEED_RAD_S)
+    home = read_shutdown_home_joints()  # 清单 primitive: jaka_arm → shutdown_home_joints（弧度）
+    input(f"\n确认机械臂回 Home 路径无障碍后按回车（将慢速回零位 {[round(v, 4) for v in home]} rad）...")
+    ret = robot.joint_move(home, ABS, True, HOME_SPEED_RAD_S)
     if ret[0] != 0:
         print(f"回 Home 失败，错误码 {ret[0]}，运动状态: {robot.get_motion_status()}")
     else:

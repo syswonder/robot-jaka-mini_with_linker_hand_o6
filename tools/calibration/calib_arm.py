@@ -13,7 +13,7 @@ import sys
 from scipy.spatial.transform import Rotation as R
 
 from utils.config_getter import get_config_value
-from utils.deploy_manifest import read_arm_ip
+from utils.deploy_manifest import read_arm_ip, read_hover_pose, read_shutdown_home_joints
 
 TOOL_ROOT = os.path.dirname(os.path.abspath(__file__))
 DEPLOY_ROOT = os.path.dirname(os.path.dirname(TOOL_ROOT))
@@ -89,8 +89,15 @@ class CalibArm:
         return list(pos), euler_zyx_deg.tolist()
 
     def prepare_for_manual_teach(self) -> bool:
-        """标定拖动采点前，先摆到夹爪朝下的工作区上方姿态，缩短拖动距离。"""
-        return self.move_to([0.2, 0.0, 0.25])
+        """标定拖动采点前，先摆到夹爪朝下的工作区上方姿态，缩短拖动距离。
+
+        目标 xyz 取清单 skill: jaka → hover_pose（运行时抓取前的悬停位，工作区
+        上方），清单缺省时回退 [0.2, 0, 0.25]。朝向仍用本工具的「夹爪朝下」
+        默认（move_to 固定），不取 hover_pose 的 rpy。
+        """
+        hover = read_hover_pose()
+        pos = hover[:3] if hover else [0.2, 0.0, 0.25]
+        return self.move_to(pos)
 
     def disable_torque(self):
         # 与 AIIT 相同的故意空操作：采点用末端 free 按钮拖拽（按住=拖拽、
@@ -127,15 +134,15 @@ class CalibArm:
         return self._driver.move_pose(list(pos), [float(a) for a in rpy_rad])
 
     def move_to_home(self) -> bool:
-        """全零位（与 AIIT 的 move_to_home 一致）。"""
-        return self._driver.move_joints_rad([0.0] * 6)
+        """回零：清单 primitive: jaka_arm → shutdown_home_joints（弧度）。"""
+        return self._driver.move_joints_rad(read_shutdown_home_joints())
 
     def disconnect_arm(self):
         """AIIT 同款收尾：回零（夹爪张开）→ 失能断电。"""
         print("Resetting JAKA arm to initial state.")
         try:
             self._driver.set_gripper_open_m(GRIPPER_STROKE_M)
-            self._driver.move_joints_rad([0.0] * 6)
+            self._driver.move_joints_rad(read_shutdown_home_joints())
         except Exception as e:
             print(f"Error during reset: {e}")
         self._driver.disconnect()
